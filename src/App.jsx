@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 // Ejemplo: VITE_BACKEND_URL=https://tu-backend.railway.app
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || import.meta.env.URL_BACKEND_VITE || "http://localhost:3001";
-const DEMO_MODE   = !import.meta.env.VITE_BACKEND_URL; // true en local
+const DEMO_MODE = true
 const PRECIO_DISPLAY = "$49.000 ARS";
 
 // ─── DATA ────────────────────────────────────────────────────────────────────
