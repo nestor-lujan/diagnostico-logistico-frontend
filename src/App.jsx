@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 // En producción: agregá VITE_BACKEND_URL en Vercel → Settings → Env Variables
 // Ejemplo: VITE_BACKEND_URL=https://tu-backend.railway.app
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3001";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || import.meta.env.URL_BACKEND_VITE || "http://localhost:3001";
 const DEMO_MODE   = !import.meta.env.VITE_BACKEND_URL; // true en local
 const PRECIO_DISPLAY = "$49.000 ARS";
 
