@@ -210,9 +210,28 @@ function Landing({ onStart }) {
       <div style={css.divider}/>
       <div style={{ textAlign:"center", padding:"1rem 0 2rem" }}>
         <div style={{ fontFamily:"'DM Serif Display',serif", fontSize:"1.1rem", marginBottom:8, color:"#fff" }}>Luján Logística</div>
-        <div style={{ fontSize:13, color:G.muted, maxWidth:360, margin:"0 auto" }}>Consultoría en logística y operaciones para PYMEs. Diagnósticos, procesos y estrategia operativa.</div>
+        <div style={{ fontSize:13, color:G.muted, maxWidth:360, margin:"0 auto", lineHeight:1.8 }}>
+          Consultoría en logística y operaciones para PYMEs. Diagnósticos, procesos y estrategia operativa.
+        </div>
+         <div style={{ marginTop:16, display:"flex", justifyContent:"center", gap:20, flexWrap:"wrap" }}>
+          <a href="mailto:lic.nestorlujan@gmail.com" style={{ fontSize:12, color:G.accent, textDecoration:"none" }}>
+            ✉ lic.nestorlujan@gmail.com
+          </a>
+          <a href="https://wa.me/542804206573" target="_blank" rel="noreferrer" style={{ fontSize:12, color:G.accent, textDecoration:"none" }}>
+            💬 WhatsApp
+          </a>
+          <a href="https://www.instagram.com/licnestorlujan" target="_blank" rel="noreferrer" style={{ fontSize:12, color:G.accent, textDecoration:"none" }}>
+            📸 Instagram
+          </a>
+          <a href="https://www.linkedin.com/in/lic-n%C3%A9stor-luj%C3%A1n-consultor-log%C3%ADstico/" target="_blank" rel="noreferrer" style={{ fontSize:12, color:G.accent, textDecoration:"none" }}>
+            💼 LinkedIn
+          </a>
+        </div>
+        </div>
+        <div style={{ fontSize:11, color:G.muted, marginTop:12 }}>
+          Trelew, Chubut, Argentina
+        </div>
       </div>
-    </div>
   );
 }
 
