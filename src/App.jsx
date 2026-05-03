@@ -67,7 +67,17 @@ function calcScores(answers) {
 function semLabel(p){ return p>=70 ? "Consolidado" : p>=40 ? "En desarrollo" : "Crítico"; }
 function semColor(p){ return p>=70 ? "#22c87a"     : p>=40 ? "#f5a623"       : "#e84040"; }
 
-// ─── SUPABASE SAVE ───────────────────────────────────────────────────────────
+async function sendEmailToClient({ email, empresa, scores, general }) {
+  try {
+    await fetch(`${BACKEND_URL}/api/send-email`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, empresa, scores, general }),
+    });
+  } catch {
+    // silencioso
+  }
+}
 async function saveDiagnosticToBackend({ email, empresa, answers, scores, general }) {
   try {
     const res = await fetch(`${BACKEND_URL}/api/save-diagnostic`, {
@@ -492,7 +502,7 @@ function Results({ answers, clientData, onRestart }) {
     if (clientData?.email) {
       saveDiagnosticToBackend({ email:clientData.email, empresa:clientData.empresa||"", answers, scores, general })
         .then(ok => setSaved(ok));
-    }
+    sendEmailToClient({ email:clientData.email, empresa:clientData.empresa||"", scores, general });}
   }, []);
 
   return (
