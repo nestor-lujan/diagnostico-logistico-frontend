@@ -392,7 +392,7 @@ function Checkout({ onPaid, onBack }) {
         </div>
       </div>
       <button style={s.mpBtn} onClick={handlePagar}>
-        <span style={{ fontSize:15, fontWeight:700 }}>MP</span>
+        
         Pagar con MercadoPago
       </button>
       <div style={{ textAlign:"center", marginTop:12 }}>
