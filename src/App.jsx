@@ -2,8 +2,6 @@ import { useState, useEffect } from "react";
 
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3001";
-const DEMO_MODE   = !import.meta.env.VITE_BACKEND_URL;
-const PRECIO_DISPLAY = "$49.000 ARS";
 
 // ─── DATA ────────────────────────────────────────────────────────────────────
 const QUESTIONS = [
@@ -67,28 +65,26 @@ function calcScores(answers) {
 function semLabel(p){ return p>=70 ? "Consolidado" : p>=40 ? "En desarrollo" : "Crítico"; }
 function semColor(p){ return p>=70 ? "#22c87a"     : p>=40 ? "#f5a623"       : "#e84040"; }
 
-async function sendEmailToClient({ email, empresa, scores, general }) {
-  try {
-    await fetch(`${BACKEND_URL}/api/send-email`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, empresa, scores, general }),
-    });
-  } catch {
-    // silencioso
-  }
-}
-async function saveDiagnosticToBackend({ email, empresa, answers, scores, general }) {
+// ─── BACKEND ─────────────────────────────────────────────────────────────────
+async function saveDiagnosticToBackend({ email, empresa, nombre, rubro, answers, scores, general }) {
   try {
     const res = await fetch(`${BACKEND_URL}/api/save-diagnostic`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, empresa, answers, scores, general }),
+      body: JSON.stringify({ email, empresa, nombre, rubro, answers, scores, general }),
     });
     return res.ok;
-  } catch {
-    return false;
-  }
+  } catch { return false; }
+}
+
+async function sendEmailToClient({ email, empresa, nombre, scores, general }) {
+  try {
+    await fetch(`${BACKEND_URL}/api/send-email`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, empresa, nombre, scores, general }),
+    });
+  } catch { /* silencioso */ }
 }
 
 // ─── DESIGN TOKENS ───────────────────────────────────────────────────────────
@@ -100,7 +96,7 @@ const G = {
   borderLight: "#252d4a",
   accent:      "#2563eb",
   accentHover: "#1d4ed8",
-  accentGlow:  "rgba(37,99,235,0.18)",
+  accentGlow:  "rgba(37,99,235,0.20)",
   accentLight: "rgba(37,99,235,0.10)",
   text:        "#e8ecf8",
   textSoft:    "#a0aacb",
@@ -111,7 +107,7 @@ const G = {
 };
 
 // ─── PDF ─────────────────────────────────────────────────────────────────────
-function generatePDF(scores, answers, general) {
+function generatePDF(scores, answers, general, clientData) {
   const allProblems = [];
   AREAS.forEach(a => scores[a].problems.forEach(p => allProblems.push(p)));
   allProblems.sort((a,b) => b.severity - a.severity);
@@ -123,43 +119,51 @@ function generatePDF(scores, answers, general) {
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'DM Sans',sans-serif;background:#fff;color:#1a1d2e;padding:48px;font-size:13px;line-height:1.6}
-.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:40px;padding-bottom:24px;border-bottom:2px solid #1e2440}
-.brand{font-family:'Libre Baskerville',serif;font-size:22px;color:#0f1320;letter-spacing:-.02em}
-.brand-sub{font-size:11px;color:#5a6285;letter-spacing:.1em;text-transform:uppercase;margin-top:4px}
-.hero{text-align:center;padding:32px 0 40px;background:#f7f8fc;border-radius:16px;margin-bottom:36px}
-.score-wrap{width:110px;height:110px;border-radius:50%;border:3px solid ${color};display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto 16px}
-.score-num{font-family:'Libre Baskerville',serif;font-size:38px;line-height:1;color:#0f1320}
+body{font-family:'DM Sans',sans-serif;background:#fff;color:#1a1d2e;padding:40px;font-size:13px;line-height:1.6}
+.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px;padding-bottom:20px;border-bottom:2px solid #1e2440}
+.brand{font-family:'Libre Baskerville',serif;font-size:20px;color:#0f1320}
+.brand-sub{font-size:11px;color:#5a6285;letter-spacing:.1em;text-transform:uppercase;margin-top:3px}
+.hero{text-align:center;padding:28px 0 36px;background:#f7f8fc;border-radius:14px;margin-bottom:28px}
+.score-wrap{width:100px;height:100px;border-radius:50%;border:3px solid ${color};display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto 14px}
+.score-num{font-family:'Libre Baskerville',serif;font-size:34px;line-height:1;color:#0f1320}
 .score-sub{font-size:10px;color:#5a6285;margin-top:2px}
-.score-label{font-family:'Libre Baskerville',serif;font-size:20px;color:#0f1320;margin-bottom:8px}
-.score-desc{font-size:13px;color:#5a6285;max-width:420px;margin:0 auto}
-.section{margin-bottom:32px}
-.section-title{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#5a6285;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid #e8ecf8}
-.area-row{display:flex;align-items:center;gap:12px;margin-bottom:14px}
-.area-name{font-size:13px;font-weight:500;min-width:210px}
+.score-label{font-family:'Libre Baskerville',serif;font-size:18px;color:#0f1320;margin-bottom:6px}
+.score-desc{font-size:12px;color:#5a6285;max-width:380px;margin:0 auto}
+.client-info{display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+.client-chip{background:#f7f8fc;border:1px solid #e8ecf8;border-radius:8px;padding:8px 14px;font-size:12px}
+.chip-label{font-size:10px;color:#5a6285;text-transform:uppercase;letter-spacing:.08em}
+.section{margin-bottom:28px}
+.section-title{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#5a6285;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #e8ecf8}
+.area-row{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.area-name{font-size:12px;font-weight:500;min-width:200px}
 .area-bar-bg{flex:1;height:6px;background:#e8ecf8;border-radius:3px;overflow:hidden}
 .area-bar-fill{height:100%;border-radius:3px}
-.area-pct{font-size:13px;font-weight:600;min-width:55px;text-align:right}
-.chip{display:inline-block;font-size:10px;padding:2px 9px;border-radius:10px;font-weight:600;margin-left:8px}
-.problem-row{display:flex;gap:14px;margin-bottom:10px;padding:14px;background:#f7f8fc;border-radius:10px;border:1px solid #e8ecf8}
-.p-num{font-family:'Libre Baskerville',serif;font-size:20px;color:#b0b8d4;min-width:22px;line-height:1.2}
-.p-title{font-size:13px;font-weight:600;color:#1a1d2e;margin-bottom:3px}
+.area-pct{font-size:12px;font-weight:600;min-width:50px;text-align:right}
+.chip{display:inline-block;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;margin-left:6px}
+.problem-row{display:flex;gap:12px;margin-bottom:8px;padding:12px;background:#f7f8fc;border-radius:8px}
+.p-num{font-family:'Libre Baskerville',serif;font-size:18px;color:#b0b8d4;min-width:20px;line-height:1.2}
+.p-title{font-size:12px;font-weight:600;color:#1a1d2e;margin-bottom:2px}
 .p-area{font-size:11px;color:#5a6285}
-.action-row{display:flex;gap:14px;margin-bottom:10px;padding:14px;border-left:3px solid #2563eb;background:#f4f6ff;border-radius:0 10px 10px 0}
-.a-num{font-size:14px;font-weight:700;color:#2563eb;min-width:22px}
-.a-text{font-size:13px;color:#1a1d2e;font-weight:500}
-.a-meta{font-size:11px;color:#5a6285;margin-top:3px}
-.footer{margin-top:40px;padding-top:20px;border-top:1px solid #e8ecf8;display:flex;justify-content:space-between;font-size:11px;color:#5a6285}
+.action-row{display:flex;gap:12px;margin-bottom:8px;padding:12px;border-left:3px solid #2563eb;background:#f4f6ff;border-radius:0 8px 8px 0}
+.a-num{font-size:13px;font-weight:700;color:#2563eb;min-width:20px}
+.a-text{font-size:12px;color:#1a1d2e;font-weight:500}
+.a-meta{font-size:11px;color:#5a6285;margin-top:2px}
+.footer{margin-top:36px;padding-top:16px;border-top:1px solid #e8ecf8;display:flex;justify-content:space-between;font-size:11px;color:#5a6285}
 </style></head><body>
 <div class="header">
   <div><div class="brand">Luján Logística</div><div class="brand-sub">Diagnóstico Operativo · PYMEs</div></div>
-  <div style="text-align:right"><div class="brand-sub">Informe generado</div><div style="font-size:11px;color:#5a6285;margin-top:4px">${date}</div></div>
+  <div style="text-align:right"><div class="brand-sub">Informe</div><div style="font-size:11px;color:#5a6285;margin-top:3px">${date}</div></div>
 </div>
 <div class="hero">
   <div class="score-wrap"><div class="score-num">${general}</div><div class="score-sub">/ 100</div></div>
   <div class="score-label">${semLabel(general)}</div>
-  <div class="score-desc">Score general de <strong>${general}/100</strong>. Análisis por área, problemas y plan de acción recomendado.</div>
+  <div class="score-desc">Score general <strong>${general}/100</strong> — análisis por área, problemas y plan de acción.</div>
 </div>
+${clientData ? `<div class="client-info">
+  ${clientData.nombre ? `<div class="client-chip"><div class="chip-label">Nombre</div>${clientData.nombre}</div>` : ""}
+  ${clientData.empresa ? `<div class="client-chip"><div class="chip-label">Empresa</div>${clientData.empresa}</div>` : ""}
+  ${clientData.rubro ? `<div class="client-chip"><div class="chip-label">Rubro</div>${clientData.rubro}</div>` : ""}
+</div>` : ""}
 <div class="section"><div class="section-title">Semáforo por área</div>
 ${AREAS.map(a=>{const s=scores[a];const c=semColor(s.pct);return`<div class="area-row"><div class="area-name">${AREA_ICONS[a]} ${a}<span class="chip" style="background:${c}22;color:${c}">${semLabel(s.pct)}</span></div><div class="area-bar-bg"><div class="area-bar-fill" style="width:${s.pct}%;background:${c}"></div></div><div class="area-pct" style="color:${c}">${s.pct}/100</div></div>`;}).join("")}
 </div>
@@ -184,229 +188,176 @@ function BarAnimate({ pct, color }) {
   const [w, setW] = useState(0);
   useEffect(()=>{ const t=setTimeout(()=>setW(pct),400); return()=>clearTimeout(t); },[pct]);
   return (
-    <div style={{ height:6, background:G.border, borderRadius:3, overflow:"hidden" }}>
-      <div style={{ height:"100%", borderRadius:3, background:color, width:`${w}%`, transition:"width 1.1s cubic-bezier(.4,0,.2,1)" }}/>
+    <div style={{ height:8, background:G.border, borderRadius:4, overflow:"hidden" }}>
+      <div style={{ height:"100%", borderRadius:4, background:color, width:`${w}%`, transition:"width 1.1s cubic-bezier(.4,0,.2,1)" }}/>
     </div>
   );
 }
 
 // ─── LANDING ─────────────────────────────────────────────────────────────────
 function Landing({ onStart }) {
-  const feats = [
-    { icon:"⏱", title:"15 minutos",     desc:"Cuestionario ágil sobre tu operación real. Sin rodeos." },
-    { icon:"📊", title:"Score por área", desc:"Semáforo visual: Transporte, Inventario y Procesos." },
-    { icon:"🎯", title:"Plan de acción", desc:"Las brechas críticas con acciones concretas priorizadas." },
-    { icon:"📄", title:"Informe PDF",    desc:"Documento profesional listo para compartir con tu equipo." },
-  ];
-
   return (
     <div>
-      <div style={{ paddingTop:"4.5rem", paddingBottom:"3.5rem", textAlign:"center" }}>
+      {/* HERO */}
+      <div style={{ paddingTop:"3rem", paddingBottom:"2.5rem", textAlign:"center" }}>
         <div style={{
           display:"inline-block", fontSize:11, letterSpacing:".14em", textTransform:"uppercase",
           color:G.accent, fontWeight:600, border:`1px solid ${G.accentGlow}`,
-          background:G.accentLight, borderRadius:20, padding:"5px 16px", marginBottom:"1.75rem"
+          background:G.accentLight, borderRadius:20, padding:"6px 18px", marginBottom:"1.5rem"
         }}>
-          Diagnóstico Logístico · PYMEs argentinas
+          Diagnóstico Logístico Gratuito · PYMEs
         </div>
 
         <h1 style={{
-          fontFamily:"'Libre Baskerville',serif", fontSize:"clamp(2.1rem,6vw,3.2rem)",
+          fontFamily:"'Libre Baskerville',serif",
+          fontSize:"clamp(1.9rem,7vw,3rem)",
           lineHeight:1.2, marginBottom:"1.25rem", color:"#fff", letterSpacing:"-.02em"
         }}>
           Sabé exactamente<br/>qué está fallando<br/>
           <span style={{ color:G.accent }}>en tu operación.</span>
         </h1>
 
-        <p style={{ fontSize:15, color:G.textSoft, lineHeight:1.75, maxWidth:440, margin:"0 auto 2.5rem" }}>
-          En 15 minutos obtenés un diagnóstico completo de tu logística con score, semáforo por área y plan de acción prioritario.
+        <p style={{ fontSize:15, color:G.textSoft, lineHeight:1.75, maxWidth:400, margin:"0 auto 2rem" }}>
+          Diagnóstico completo en 15 minutos. Score por área, problemas críticos y plan de acción. <strong style={{ color:"#fff" }}>100% gratuito.</strong>
         </p>
 
-        <div style={{
-          display:"inline-flex", flexDirection:"column", alignItems:"center",
-          background:G.surface, border:`1px solid ${G.border}`, borderRadius:16,
-          padding:"1.25rem 2.5rem", marginBottom:"2rem"
-        }}>
-          <div style={{ fontFamily:"'Libre Baskerville',serif", fontSize:"2.8rem", color:"#fff", lineHeight:1 }}>{PRECIO_DISPLAY}</div>
-          <div style={{ fontSize:12, color:G.muted, marginTop:5 }}>pago único · acceso inmediato</div>
-        </div>
-
-        <div>
-          <button
-            style={{
-              display:"inline-block", padding:"16px 40px", background:G.accent, color:"#fff",
-              border:"none", borderRadius:12, fontSize:15, fontWeight:600,
-              fontFamily:"'DM Sans',sans-serif", cursor:"pointer",
-              boxShadow:`0 8px 32px ${G.accentGlow}`
-            }}
-            onClick={onStart}
-            onMouseOver={e=>e.currentTarget.style.background=G.accentHover}
-            onMouseOut={e=>e.currentTarget.style.background=G.accent}
-          >
-            Comenzar diagnóstico →
-          </button>
-          <div style={{ fontSize:12, color:G.muted, marginTop:12 }}>Sin registro. Sin suscripción. Resultado inmediato.</div>
-          {DEMO_MODE && (
-            <div style={{ fontSize:11, color:G.amber, marginTop:8,
-              background:"rgba(245,166,35,.08)", border:"1px solid rgba(245,166,35,.2)",
-              borderRadius:8, padding:"6px 14px", display:"inline-block" }}>
-              ⚠ Modo demo — el pago está simulado
-            </div>
-          )}
+        <button
+          style={{
+            display:"block", width:"100%", maxWidth:340, margin:"0 auto",
+            padding:"18px 0", background:G.accent, color:"#fff",
+            border:"none", borderRadius:14, fontSize:16, fontWeight:700,
+            fontFamily:"'DM Sans',sans-serif", cursor:"pointer",
+            boxShadow:`0 8px 32px ${G.accentGlow}`, letterSpacing:".01em"
+          }}
+          onClick={onStart}
+        >
+          Comenzar diagnóstico →
+        </button>
+        <div style={{ fontSize:12, color:G.muted, marginTop:10 }}>
+          Sin registro. Sin tarjeta. Resultado inmediato.
         </div>
       </div>
 
-      {/* Stats */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12, marginBottom:"2.5rem" }}>
-        {[["15'","Duración"],["3","Áreas clave"],["100","Score máximo"]].map(([v,l],i)=>(
-          <div key={i} style={{ textAlign:"center", padding:"1.25rem 1rem", background:G.surface, border:`1px solid ${G.border}`, borderRadius:14 }}>
-            <div style={{ fontFamily:"'Libre Baskerville',serif", fontSize:"2rem", color:"#fff", lineHeight:1, marginBottom:4 }}>{v}</div>
-            <div style={{ fontSize:11, color:G.muted, textTransform:"uppercase", letterSpacing:".1em" }}>{l}</div>
+      {/* STATS */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:10, marginBottom:"2rem" }}>
+        {[["15'","Duración"],["3","Áreas"],["100","Score máx"]].map(([v,l],i)=>(
+          <div key={i} style={{ textAlign:"center", padding:"1.1rem .5rem", background:G.surface, border:`1px solid ${G.border}`, borderRadius:12 }}>
+            <div style={{ fontFamily:"'Libre Baskerville',serif", fontSize:"1.8rem", color:"#fff", lineHeight:1, marginBottom:3 }}>{v}</div>
+            <div style={{ fontSize:10, color:G.muted, textTransform:"uppercase", letterSpacing:".1em" }}>{l}</div>
           </div>
         ))}
       </div>
 
-      <div style={{ height:1, background:G.border, marginBottom:"2.5rem" }}/>
-
-      <div style={{ textAlign:"center", marginBottom:"1.5rem" }}>
-        <div style={{ fontFamily:"'Libre Baskerville',serif", fontSize:"1.4rem", color:"#fff" }}>¿Qué incluye el diagnóstico?</div>
-      </div>
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(175px,1fr))", gap:12, marginBottom:"2.5rem" }}>
-        {feats.map((f,i)=>(
-          <div key={i} style={{ background:G.surface, border:`1px solid ${G.border}`, borderRadius:14, padding:"1.25rem" }}
-            onMouseOver={e=>e.currentTarget.style.borderColor=G.borderLight}
-            onMouseOut={e=>e.currentTarget.style.borderColor=G.border}
-          >
-            <div style={{ fontSize:22, marginBottom:10 }}>{f.icon}</div>
-            <div style={{ fontSize:13, fontWeight:600, marginBottom:5, color:"#fff" }}>{f.title}</div>
-            <div style={{ fontSize:12, color:G.textSoft, lineHeight:1.65 }}>{f.desc}</div>
-          </div>
-        ))}
-      </div>
-
+      {/* FEATURES */}
       <div style={{ height:1, background:G.border, marginBottom:"2rem" }}/>
-      <div style={{ textAlign:"center", padding:"1rem 0 2.5rem" }}>
-        <div style={{ fontFamily:"'Libre Baskerville',serif", fontSize:"1.2rem", marginBottom:8, color:"#fff" }}>Luján Logística</div>
-        <div style={{ fontSize:13, color:G.textSoft, maxWidth:360, margin:"0 auto 1.25rem", lineHeight:1.8 }}>
-          Consultoría en logística y operaciones para PYMEs.<br/>Diagnósticos, procesos y estrategia operativa.
+      <div style={{ textAlign:"center", marginBottom:"1.25rem" }}>
+        <div style={{ fontFamily:"'Libre Baskerville',serif", fontSize:"1.25rem", color:"#fff" }}>¿Qué incluye?</div>
+      </div>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:"2rem" }}>
+        {[
+          { icon:"📊", title:"Score por área", desc:"Semáforo visual: Transporte, Inventario y Procesos." },
+          { icon:"🎯", title:"Plan de acción", desc:"Acciones concretas priorizadas por impacto." },
+          { icon:"⚠️", title:"Problemas críticos", desc:"Los puntos débiles de tu operación, claros." },
+          { icon:"📄", title:"Informe PDF", desc:"Documento profesional para compartir." },
+        ].map((f,i)=>(
+          <div key={i} style={{ background:G.surface, border:`1px solid ${G.border}`, borderRadius:12, padding:"1rem" }}>
+            <div style={{ fontSize:20, marginBottom:8 }}>{f.icon}</div>
+            <div style={{ fontSize:13, fontWeight:600, marginBottom:4, color:"#fff" }}>{f.title}</div>
+            <div style={{ fontSize:12, color:G.textSoft, lineHeight:1.55 }}>{f.desc}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* FOOTER */}
+      <div style={{ height:1, background:G.border, marginBottom:"1.75rem" }}/>
+      <div style={{ textAlign:"center", paddingBottom:"2rem" }}>
+        <div style={{ fontFamily:"'Libre Baskerville',serif", fontSize:"1.1rem", marginBottom:6, color:"#fff" }}>Luján Logística</div>
+        <div style={{ fontSize:12, color:G.textSoft, marginBottom:"1rem", lineHeight:1.7 }}>
+          Consultoría en logística y operaciones para PYMEs.<br/>Trelew, Chubut, Argentina
         </div>
-        <div style={{ display:"flex", justifyContent:"center", gap:20, flexWrap:"wrap" }}>
+        <div style={{ display:"flex", justifyContent:"center", gap:16, flexWrap:"wrap" }}>
           {[
             ["mailto:lic.nestorlujan@gmail.com","✉ Email"],
             ["https://wa.me/542804206573","💬 WhatsApp"],
             ["https://www.instagram.com/licnestorlujan","📸 Instagram"],
-            ["https://www.linkedin.com/in/lic-n%C3%A9stor-luj%C3%A1n-consultor-log%C3%ADstico/","💼 LinkedIn"],
           ].map(([href,label],i)=>(
             <a key={i} href={href} target="_blank" rel="noreferrer"
               style={{ fontSize:12, color:G.accent, textDecoration:"none", fontWeight:500 }}>{label}</a>
           ))}
         </div>
-        <div style={{ fontSize:11, color:G.muted, marginTop:14 }}>Trelew, Chubut, Argentina</div>
       </div>
     </div>
   );
 }
 
-// ─── CHECKOUT ────────────────────────────────────────────────────────────────
-function Checkout({ onPaid, onBack }) {
-  const [step, setStep]       = useState("form");
-  const [email, setEmail]     = useState("");
+// ─── FORMULARIO DE CAPTURA ────────────────────────────────────────────────────
+function Capture({ onNext }) {
+  const [nombre,  setNombre]  = useState("");
   const [empresa, setEmpresa] = useState("");
-  const [emailError, setErr]  = useState("");
-  const [errorMsg, setErrMsg] = useState("");
+  const [rubro,   setRubro]   = useState("");
+  const [email,   setEmail]   = useState("");
+  const [error,   setError]   = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const s = {
-    card:  { background:G.surface, border:`1px solid ${G.border}`, borderRadius:16, padding:"1.5rem", marginBottom:12 },
-    label: { fontSize:12, color:G.textSoft, marginBottom:7, display:"block", fontWeight:500 },
-    input: { width:"100%", padding:"12px 14px", background:G.bg, border:`1px solid ${G.border}`, borderRadius:10, color:G.text, fontSize:14, fontFamily:"'DM Sans',sans-serif", outline:"none" },
-    row:     { display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:`1px solid ${G.border}` },
-    rowLast: { display:"flex", justifyContent:"space-between", alignItems:"center", padding:"12px 0 0" },
-    mpBtn:   { display:"flex", alignItems:"center", justifyContent:"center", gap:10, width:"100%", padding:"16px 0", background:"#009ee3", border:"none", borderRadius:12, color:"#fff", fontSize:15, fontWeight:600, fontFamily:"'DM Sans',sans-serif", cursor:"pointer", marginTop:16 },
+  const inputStyle = {
+    width:"100%", padding:"14px 16px",
+    background:G.bg, border:`1px solid ${G.border}`,
+    borderRadius:12, color:G.text, fontSize:15,
+    fontFamily:"'DM Sans',sans-serif", outline:"none",
+    marginBottom:12,
   };
 
-  async function handlePagar() {
-    if (!email || !/\S+@\S+\.\S+/.test(email)) { setErr("Ingresá un email válido."); return; }
-    setErr(""); setStep("processing");
-    if (DEMO_MODE) { await new Promise(r=>setTimeout(r,1600)); setStep("success"); return; }
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/create-preference`, {
-        method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ email, empresa }),
-      });
-      if (!res.ok) throw new Error();
-      const { init_point, sandbox_init_point } = await res.json();
-      window.location.href = import.meta.env.DEV ? sandbox_init_point : init_point;
-    } catch {
-      setErrMsg("No pudimos conectar con el servidor de pagos. Intentá de nuevo.");
-      setStep("error");
-    }
+  async function handleSubmit() {
+    if (!nombre.trim())  { setError("Ingresá tu nombre."); return; }
+    if (!email.trim() || !/\S+@\S+\.\S+/.test(email)) { setError("Ingresá un email válido."); return; }
+    setError("");
+    setLoading(true);
+    await new Promise(r => setTimeout(r, 400));
+    setLoading(false);
+    onNext({ nombre, empresa, rubro, email });
   }
-
-  if (step==="processing") return (
-    <div style={{ paddingTop:"5rem", textAlign:"center" }}>
-      <div style={{ fontSize:36, marginBottom:16 }}>⏳</div>
-      <div style={{ fontFamily:"'Libre Baskerville',serif", fontSize:"1.4rem", color:"#fff", marginBottom:8 }}>Procesando...</div>
-      <div style={{ fontSize:13, color:G.muted }}>Conectando con MercadoPago. No cerrés esta ventana.</div>
-    </div>
-  );
-
-  if (step==="error") return (
-    <div style={{ paddingTop:"5rem", textAlign:"center" }}>
-      <div style={{ fontSize:36, marginBottom:16 }}>❌</div>
-      <div style={{ fontFamily:"'Libre Baskerville',serif", fontSize:"1.4rem", color:"#fff", marginBottom:8 }}>Error al procesar</div>
-      <div style={{ fontSize:13, color:G.muted, marginBottom:24 }}>{errorMsg}</div>
-      <button style={{ padding:"13px 32px", background:G.accent, border:"none", borderRadius:10, color:"#fff", fontSize:14, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}
-        onClick={()=>setStep("form")}>Intentar de nuevo</button>
-    </div>
-  );
-
-  if (step==="success") return (
-    <div style={{ paddingTop:"5rem", textAlign:"center" }}>
-      <div style={{ width:72, height:72, borderRadius:"50%", background:"rgba(34,200,122,.12)", border:`2px solid ${G.green}`,
-        display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 20px", fontSize:28 }}>✓</div>
-      <div style={{ fontFamily:"'Libre Baskerville',serif", fontSize:"1.7rem", color:"#fff", marginBottom:10 }}>¡Pago confirmado!</div>
-      <div style={{ fontSize:14, color:G.textSoft, marginBottom:28, lineHeight:1.7 }}>
-        Acceso habilitado para <strong style={{ color:G.text }}>{email}</strong>.
-      </div>
-      <button style={{ padding:"15px 40px", background:G.green, border:"none", borderRadius:12,
-        color:"#071a10", fontSize:15, fontWeight:600, fontFamily:"'DM Sans',sans-serif", cursor:"pointer" }}
-        onClick={()=>onPaid({ email, empresa })}>
-        Comenzar diagnóstico →
-      </button>
-    </div>
-  );
 
   return (
     <div style={{ paddingTop:"2.5rem" }}>
-      <button onClick={onBack} style={{ background:"none", border:"none", color:G.muted, fontSize:13, cursor:"pointer", marginBottom:"1.75rem", fontFamily:"'DM Sans',sans-serif" }}>← Volver</button>
-      <div style={{ fontFamily:"'Libre Baskerville',serif", fontSize:"1.7rem", color:"#fff", marginBottom:6 }}>Completá tu compra</div>
-      <div style={{ fontSize:13, color:G.muted, marginBottom:"1.75rem" }}>Acceso inmediato al diagnóstico logístico completo.</div>
-      <div style={s.card}>
-        <div style={{ fontSize:11, letterSpacing:".12em", textTransform:"uppercase", color:G.accent, marginBottom:14, fontWeight:600 }}>Resumen</div>
-        <div style={s.row}><span style={{ fontSize:13 }}>Diagnóstico Logístico para PYMEs</span><span style={{ fontSize:13, fontWeight:600 }}>{PRECIO_DISPLAY}</span></div>
-        <div style={s.row}><span style={{ fontSize:12, color:G.muted }}>Informe PDF incluido</span><span style={{ fontSize:12, color:G.green }}>✓</span></div>
-        <div style={s.row}><span style={{ fontSize:12, color:G.muted }}>Acceso inmediato</span><span style={{ fontSize:12, color:G.green }}>✓</span></div>
-        <div style={s.rowLast}><span style={{ fontSize:14, fontWeight:600 }}>Total</span><span style={{ fontSize:17, fontWeight:600, color:"#fff" }}>{PRECIO_DISPLAY}</span></div>
+      <div style={{ fontFamily:"'Libre Baskerville',serif", fontSize:"1.6rem", color:"#fff", marginBottom:6 }}>
+        Antes de empezar
       </div>
-      <div style={s.card}>
-        <div style={{ fontSize:11, letterSpacing:".12em", textTransform:"uppercase", color:G.accent, marginBottom:16, fontWeight:600 }}>Tus datos</div>
-        <div style={{ marginBottom:14 }}>
-          <label style={s.label}>Email *</label>
-          <input style={{ ...s.input, borderColor: emailError ? G.red : G.border }} type="email"
-            placeholder="tu@email.com" value={email} onChange={e=>{ setEmail(e.target.value); setErr(""); }}/>
-          {emailError && <div style={{ fontSize:12, color:G.red, marginTop:5 }}>{emailError}</div>}
-        </div>
-        <div>
-          <label style={s.label}>Empresa (opcional)</label>
-          <input style={s.input} type="text" placeholder="Nombre de tu empresa" value={empresa} onChange={e=>setEmpresa(e.target.value)}/>
-        </div>
+      <div style={{ fontSize:14, color:G.textSoft, marginBottom:"1.75rem", lineHeight:1.6 }}>
+        Completá tus datos para recibir el informe por email al finalizar.
       </div>
-      <button style={s.mpBtn} onClick={handlePagar}>
-        
-        Pagar con MercadoPago
+
+      <label style={{ fontSize:12, color:G.textSoft, fontWeight:500, display:"block", marginBottom:6 }}>Nombre *</label>
+      <input style={inputStyle} type="text" placeholder="Tu nombre" value={nombre} onChange={e=>{ setNombre(e.target.value); setError(""); }}/>
+
+      <label style={{ fontSize:12, color:G.textSoft, fontWeight:500, display:"block", marginBottom:6 }}>Email *</label>
+      <input style={{ ...inputStyle, borderColor: error && !email ? G.red : G.border }} type="email" placeholder="tu@email.com" value={email} onChange={e=>{ setEmail(e.target.value); setError(""); }}/>
+
+      <label style={{ fontSize:12, color:G.textSoft, fontWeight:500, display:"block", marginBottom:6 }}>Empresa (opcional)</label>
+      <input style={inputStyle} type="text" placeholder="Nombre de tu empresa" value={empresa} onChange={e=>setEmpresa(e.target.value)}/>
+
+      <label style={{ fontSize:12, color:G.textSoft, fontWeight:500, display:"block", marginBottom:6 }}>Rubro (opcional)</label>
+      <input style={inputStyle} type="text" placeholder="Ej: Distribución, Ferretería, Alimentos..." value={rubro} onChange={e=>setRubro(e.target.value)}/>
+
+      {error && <div style={{ fontSize:13, color:G.red, marginBottom:12, background:"rgba(232,64,64,.08)", border:`1px solid rgba(232,64,64,.2)`, borderRadius:8, padding:"8px 12px" }}>{error}</div>}
+
+      <button
+        style={{
+          display:"block", width:"100%", padding:"17px 0",
+          background: loading ? G.border : G.accent,
+          border:"none", borderRadius:14, color: loading ? G.muted : "#fff",
+          fontSize:15, fontWeight:700, fontFamily:"'DM Sans',sans-serif",
+          cursor: loading ? "not-allowed" : "pointer",
+          boxShadow: loading ? "none" : `0 6px 24px ${G.accentGlow}`,
+          marginTop:4
+        }}
+        onClick={handleSubmit}
+        disabled={loading}
+      >
+        {loading ? "Guardando..." : "Comenzar diagnóstico →"}
       </button>
-      <div style={{ textAlign:"center", marginTop:12 }}>
-        <div style={{ fontSize:11, color:G.muted }}>🔒 Pago seguro · Tarjetas, débito y transferencia</div>
+
+      <div style={{ fontSize:11, color:G.muted, textAlign:"center", marginTop:10 }}>
+        🔒 Tus datos son confidenciales y no se comparten con terceros.
       </div>
     </div>
   );
@@ -419,7 +370,7 @@ function Quiz({ onFinish }) {
   const [animKey, setAnimKey] = useState(0);
 
   const q   = QUESTIONS[current];
-  const pct = (current / 15) * 100;
+  const pct = Math.round((current / 15) * 100);
 
   function selectOpt(i){ const next=[...answers]; next[current]=i; setAnswers(next); }
   function goNext(){
@@ -430,54 +381,64 @@ function Quiz({ onFinish }) {
   function goBack(){ if(current>0){ setAnimKey(k=>k+1); setCurrent(c=>c-1); } }
 
   return (
-    <div style={{ paddingTop:"2.5rem" }}>
-      <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:"2.25rem" }}>
-        <div style={{ flex:1, height:3, background:G.border, borderRadius:2, overflow:"hidden" }}>
+    <div style={{ paddingTop:"1.75rem" }}>
+      {/* Progress */}
+      <div style={{ marginBottom:"1.75rem" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+          <span style={{ fontSize:12, color:G.accent, fontWeight:600 }}>{AREA_ICONS[q.area]} {q.area}</span>
+          <span style={{ fontSize:12, color:G.muted }}>{current+1} / 15</span>
+        </div>
+        <div style={{ height:4, background:G.border, borderRadius:2, overflow:"hidden" }}>
           <div style={{ height:"100%", background:`linear-gradient(90deg,${G.accent},#6366f1)`, borderRadius:2, width:`${pct}%`, transition:"width .5s ease" }}/>
         </div>
-        <span style={{ fontSize:12, color:G.muted, flexShrink:0 }}>{current+1}/15</span>
       </div>
 
       <div key={animKey} style={{ animation:"fadeUp .3s ease forwards" }}>
-        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
-          <span style={{ fontSize:16 }}>{AREA_ICONS[q.area]}</span>
-          <span style={{ fontSize:11, letterSpacing:".12em", textTransform:"uppercase", color:G.accent, fontWeight:600 }}>{q.area}</span>
-        </div>
-        <div style={{ fontFamily:"'Libre Baskerville',serif", fontSize:"clamp(1.15rem,3.5vw,1.4rem)", lineHeight:1.45, marginBottom:"2rem", color:"#fff" }}>
+        <div style={{ fontFamily:"'Libre Baskerville',serif", fontSize:"clamp(1.1rem,4.5vw,1.35rem)", lineHeight:1.45, marginBottom:"1.75rem", color:"#fff" }}>
           {q.q}
         </div>
+
         <div>
           {q.opts.map((o,i)=>{
             const sel = answers[current]===i;
             return (
               <button key={i}
                 style={{
-                  display:"flex", alignItems:"center", gap:14, width:"100%", padding:"15px 16px", marginBottom:10,
+                  display:"flex", alignItems:"flex-start", gap:14, width:"100%",
+                  padding:"16px", marginBottom:12,
                   background:sel ? G.accentLight : G.surface,
-                  border:`1px solid ${sel ? G.accent : G.border}`,
-                  borderRadius:12, color:sel ? "#fff" : G.text,
-                  fontSize:14, fontFamily:"'DM Sans',sans-serif", cursor:"pointer", textAlign:"left", transition:"all .15s"
+                  border:`2px solid ${sel ? G.accent : G.border}`,
+                  borderRadius:14, color:sel ? "#fff" : G.text,
+                  fontSize:14, fontFamily:"'DM Sans',sans-serif",
+                  cursor:"pointer", textAlign:"left", transition:"all .15s",
+                  lineHeight:1.45
                 }}
                 onClick={()=>selectOpt(i)}
               >
                 <span style={{
-                  minWidth:28, height:28, borderRadius:8,
-                  background: sel ? G.accent : G.border, color: sel ? "#fff" : G.muted,
+                  minWidth:30, height:30, borderRadius:8, flexShrink:0,
+                  background: sel ? G.accent : G.border,
+                  color: sel ? "#fff" : G.muted,
                   display:"flex", alignItems:"center", justifyContent:"center",
-                  fontSize:11, fontWeight:700, flexShrink:0
+                  fontSize:12, fontWeight:700, marginTop:1
                 }}>
                   {["A","B","C"][i]}
                 </span>
-                {o}
+                <span>{o}</span>
               </button>
             );
           })}
         </div>
       </div>
 
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:12, marginTop:12 }}>
-        <button style={{ padding:"12px 22px", background:"transparent", border:`1px solid ${G.border}`, borderRadius:10, color:G.muted, fontSize:13, fontFamily:"'DM Sans',sans-serif", cursor:"pointer", visibility:current===0?"hidden":"visible" }} onClick={goBack}>← Anterior</button>
-        <button style={{ padding:"13px 28px", background:answers[current]===null ? G.border : G.accent, border:"none", borderRadius:10, color:answers[current]===null ? G.muted : "#fff", fontSize:14, fontWeight:600, fontFamily:"'DM Sans',sans-serif", cursor:answers[current]===null ? "not-allowed" : "pointer" }} onClick={goNext} disabled={answers[current]===null}>
+      {/* Navigation */}
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:12, marginTop:8 }}>
+        <button
+          style={{ padding:"13px 20px", background:"transparent", border:`1px solid ${G.border}`, borderRadius:10, color:G.muted, fontSize:13, fontFamily:"'DM Sans',sans-serif", cursor:"pointer", visibility:current===0?"hidden":"visible" }}
+          onClick={goBack}>← Anterior</button>
+        <button
+          style={{ padding:"14px 28px", background:answers[current]===null ? G.border : G.accent, border:"none", borderRadius:10, color:answers[current]===null ? G.muted : "#fff", fontSize:14, fontWeight:700, fontFamily:"'DM Sans',sans-serif", cursor:answers[current]===null ? "not-allowed" : "pointer" }}
+          onClick={goNext} disabled={answers[current]===null}>
           {current===14 ? "Ver diagnóstico →" : "Siguiente →"}
         </button>
       </div>
@@ -499,39 +460,56 @@ function Results({ answers, clientData, onRestart }) {
   const top5 = allProblems.slice(0,5);
 
   useEffect(()=>{
-    if (clientData?.email) {
-      saveDiagnosticToBackend({ email:clientData.email, empresa:clientData.empresa||"", answers, scores, general })
-        .then(ok => setSaved(ok));
-    sendEmailToClient({ email:clientData.email, empresa:clientData.empresa||"", scores, general });}
+    saveDiagnosticToBackend({
+      email:   clientData?.email || "",
+      nombre:  clientData?.nombre || "",
+      empresa: clientData?.empresa || "",
+      rubro:   clientData?.rubro || "",
+      answers, scores, general
+    }).then(ok => setSaved(ok));
+    sendEmailToClient({
+      email:   clientData?.email || "",
+      nombre:  clientData?.nombre || "",
+      empresa: clientData?.empresa || "",
+      scores, general
+    });
   }, []);
 
   return (
-    <div style={{ paddingTop:"2.5rem" }}>
-      <div style={{ textAlign:"center", marginBottom:"2.5rem" }}>
-        <div style={{ width:140, height:140, borderRadius:"50%", border:`3px solid ${color}`, boxShadow:`0 0 48px ${color}44`, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", margin:"0 auto 1.25rem" }}>
-          <div style={{ fontFamily:"'Libre Baskerville',serif", fontSize:"3rem", color:"#fff", lineHeight:1 }}>{general}</div>
+    <div style={{ paddingTop:"2rem" }}>
+      {/* Score hero */}
+      <div style={{ textAlign:"center", marginBottom:"2rem" }}>
+        <div style={{
+          width:130, height:130, borderRadius:"50%",
+          border:`3px solid ${color}`, boxShadow:`0 0 40px ${color}44`,
+          display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
+          margin:"0 auto 1rem"
+        }}>
+          <div style={{ fontFamily:"'Libre Baskerville',serif", fontSize:"2.8rem", color:"#fff", lineHeight:1 }}>{general}</div>
           <div style={{ fontSize:11, color:G.muted, marginTop:3 }}>/ 100</div>
         </div>
-        <div style={{ fontFamily:"'Libre Baskerville',serif", fontSize:"1.6rem", color:"#fff", marginBottom:8 }}>{semLabel(general)}</div>
-        <div style={{ fontSize:14, color:G.textSoft, lineHeight:1.7, maxWidth:400, margin:"0 auto" }}>
-          Tu operación obtuvo un score de <strong style={{ color:"#fff" }}>{general}/100</strong>.
+        <div style={{ fontFamily:"'Libre Baskerville',serif", fontSize:"1.5rem", color:"#fff", marginBottom:6 }}>{semLabel(general)}</div>
+        <div style={{ fontSize:14, color:G.textSoft, lineHeight:1.6, maxWidth:380, margin:"0 auto" }}>
+          {clientData?.nombre && <span>Hola <strong style={{ color:"#fff" }}>{clientData.nombre}</strong>, tu</span>}
+          {!clientData?.nombre && <span>Tu</span>} operación obtuvo un score de <strong style={{ color:"#fff" }}>{general}/100</strong>.
         </div>
-        {saved && <div style={{ fontSize:12, color:G.green, marginTop:10 }}>✓ Diagnóstico guardado correctamente</div>}
+        {saved && <div style={{ fontSize:12, color:G.green, marginTop:10 }}>✓ Informe enviado a {clientData?.email}</div>}
       </div>
 
-      <div style={{ fontSize:10, letterSpacing:".14em", textTransform:"uppercase", color:G.muted, marginBottom:12 }}>Semáforo por área</div>
+      {/* Semáforo */}
+      <div style={{ fontSize:10, letterSpacing:".14em", textTransform:"uppercase", color:G.muted, marginBottom:10 }}>Semáforo por área</div>
       {AREAS.map(a=>{
         const s=scores[a]; const c=semColor(s.pct);
         return (
-          <div key={a} style={{ background:G.surface, border:`1px solid ${G.border}`, borderRadius:14, padding:"1rem 1.25rem", marginBottom:10 }}>
+          <div key={a} style={{ background:G.surface, border:`1px solid ${G.border}`, borderRadius:14, padding:"1rem 1.1rem", marginBottom:10 }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
               <div style={{ fontSize:13, fontWeight:600, display:"flex", alignItems:"center", gap:8 }}>
-                <span style={{ width:8, height:8, borderRadius:"50%", background:c, display:"inline-block" }}/>
+                <span style={{ width:8, height:8, borderRadius:"50%", background:c, display:"inline-block", boxShadow:`0 0 8px ${c}` }}/>
                 {AREA_ICONS[a]} {a}
               </div>
-              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:6 }}>
                 <span style={{ fontSize:13, fontWeight:700, color:c }}>{s.pct}/100</span>
-                <span style={{ fontSize:10, padding:"2px 9px", borderRadius:20, fontWeight:600, background:c+"22", color:c }}>{semLabel(s.pct)}</span>
+                <span style={{ fontSize:10, padding:"2px 8px", borderRadius:20, fontWeight:600, background:c+"22", color:c }}>{semLabel(s.pct)}</span>
               </div>
             </div>
             <BarAnimate pct={s.pct} color={c}/>
@@ -539,11 +517,12 @@ function Results({ answers, clientData, onRestart }) {
         );
       })}
 
+      {/* Problemas */}
       {top5.length>0 && <>
-        <div style={{ fontSize:10, letterSpacing:".14em", textTransform:"uppercase", color:G.muted, margin:"1.75rem 0 .75rem" }}>Principales problemas detectados</div>
+        <div style={{ fontSize:10, letterSpacing:".14em", textTransform:"uppercase", color:G.muted, margin:"1.5rem 0 .75rem" }}>Principales problemas detectados</div>
         {top5.map((p,i)=>(
-          <div key={i} style={{ background:G.surface, border:`1px solid ${G.border}`, borderRadius:14, padding:"1rem 1.25rem", marginBottom:10, display:"flex", gap:14 }}>
-            <div style={{ fontFamily:"'Libre Baskerville',serif", fontSize:"1.5rem", color:G.muted, minWidth:24, lineHeight:1.1 }}>{i+1}</div>
+          <div key={i} style={{ background:G.surface, border:`1px solid ${G.border}`, borderRadius:14, padding:"1rem 1.1rem", marginBottom:10, display:"flex", gap:12 }}>
+            <div style={{ fontFamily:"'Libre Baskerville',serif", fontSize:"1.4rem", color:G.muted, minWidth:22, lineHeight:1.1 }}>{i+1}</div>
             <div>
               <div style={{ fontSize:13, fontWeight:600, marginBottom:3 }}>{p.short}</div>
               <div style={{ fontSize:12, color:G.muted }}>{p.area} · {p.severity===2?"⚠ Prioridad alta":"Prioridad media"}</div>
@@ -552,27 +531,40 @@ function Results({ answers, clientData, onRestart }) {
         ))}
       </>}
 
-      <div style={{ fontSize:10, letterSpacing:".14em", textTransform:"uppercase", color:G.muted, margin:"1.75rem 0 .75rem" }}>Plan de acción recomendado</div>
+      {/* Plan */}
+      <div style={{ fontSize:10, letterSpacing:".14em", textTransform:"uppercase", color:G.muted, margin:"1.5rem 0 .75rem" }}>Plan de acción recomendado</div>
       {top5.length===0 ? (
-        <div style={{ borderLeft:`3px solid ${G.green}`, background:G.surface2, borderRadius:"0 14px 14px 0", padding:"1rem 1.25rem" }}>
+        <div style={{ borderLeft:`3px solid ${G.green}`, background:G.surface2, borderRadius:"0 14px 14px 0", padding:"1rem 1.1rem" }}>
           <div style={{ fontSize:13, fontWeight:600, marginBottom:3 }}>Tu operación está en buen nivel.</div>
           <div style={{ fontSize:11, color:G.muted }}>Enfocate en mantener indicadores y explorar mejoras tecnológicas.</div>
         </div>
       ) : top5.map((p,i)=>{
         const accion = ACTIONS[p.q]||"Revisá esta área con tu equipo.";
         return (
-          <div key={i} style={{ borderLeft:`3px solid ${G.accent}`, background:G.surface2, borderRadius:"0 14px 14px 0", padding:"1rem 1.25rem", marginBottom:10 }}>
-            <div style={{ fontSize:13, fontWeight:600, marginBottom:3 }}>{i+1}. {accion.split(":")[0]}</div>
+          <div key={i} style={{ borderLeft:`3px solid ${G.accent}`, background:G.surface2, borderRadius:"0 14px 14px 0", padding:"1rem 1.1rem", marginBottom:10 }}>
+            <div style={{ fontSize:13, fontWeight:600, marginBottom:3 }}>{i+1}. {accion}</div>
             <div style={{ fontSize:11, color:G.muted }}>{p.area} · {p.severity===2?"Acción urgente":"Próximo trimestre"}</div>
           </div>
         );
       })}
 
-      <button style={{ display:"block", width:"100%", padding:"15px 0", marginTop:"1.75rem", background:G.green, border:"none", borderRadius:12, color:"#071a10", fontSize:14, fontWeight:700, fontFamily:"'DM Sans',sans-serif", cursor:"pointer" }}
-        onClick={()=>generatePDF(scores,answers,general)}>
-        ↓ Descargar informe completo (PDF)
+      {/* CTA Luján */}
+      <div style={{ background:`linear-gradient(135deg,${G.accent}22,${G.surface2})`, border:`1px solid ${G.accent}44`, borderRadius:16, padding:"1.25rem", margin:"1.75rem 0", textAlign:"center" }}>
+        <div style={{ fontSize:14, fontWeight:600, color:"#fff", marginBottom:4 }}>¿Querés profundizar en los resultados?</div>
+        <div style={{ fontSize:13, color:G.textSoft, marginBottom:14 }}>Hablemos sobre cómo mejorar tu operación logística.</div>
+        <a href="https://wa.me/542804206573" target="_blank" rel="noreferrer"
+          style={{ display:"inline-block", padding:"13px 28px", background:G.green, borderRadius:12, color:"#071a10", fontSize:14, fontWeight:700, textDecoration:"none" }}>
+          💬 Contactar por WhatsApp
+        </a>
+      </div>
+
+      <button
+        style={{ display:"block", width:"100%", padding:"15px 0", background:G.accent, border:"none", borderRadius:14, color:"#fff", fontSize:14, fontWeight:700, fontFamily:"'DM Sans',sans-serif", cursor:"pointer", marginBottom:10 }}
+        onClick={()=>generatePDF(scores,answers,general,clientData)}>
+        ↓ Descargar informe PDF
       </button>
-      <button style={{ display:"block", width:"100%", padding:"13px 0", marginTop:10, background:"transparent", border:`1px solid ${G.border}`, borderRadius:12, color:G.muted, fontSize:13, fontFamily:"'DM Sans',sans-serif", cursor:"pointer" }}
+      <button
+        style={{ display:"block", width:"100%", padding:"13px 0", background:"transparent", border:`1px solid ${G.border}`, borderRadius:14, color:G.muted, fontSize:13, fontFamily:"'DM Sans',sans-serif", cursor:"pointer" }}
         onClick={onRestart}>
         Realizar nuevo diagnóstico
       </button>
@@ -582,48 +574,31 @@ function Results({ answers, clientData, onRestart }) {
 
 // ─── APP ROOT ─────────────────────────────────────────────────────────────────
 export default function App() {
-  const [screen, setScreen]       = useState("landing");
+  const [screen, setScreen]         = useState("landing");
   const [finalAnswers, setFinalAns] = useState(null);
-  const [clientData, setClientData] = useState(null);
-  const [verifying, setVerifying]   = useState(false);
-
-  useEffect(() => {
-    const params    = new URLSearchParams(window.location.search);
-    const status    = params.get("status");
-    const paymentId = params.get("payment_id");
-    if (status==="approved" && paymentId && !DEMO_MODE) {
-      setVerifying(true);
-      fetch(`${BACKEND_URL}/api/verify-payment?payment_id=${paymentId}`)
-        .then(r=>r.json())
-        .then(data=>{ if(data.approved) setScreen("quiz"); else setScreen("landing"); })
-        .catch(()=>setScreen("landing"))
-        .finally(()=>setVerifying(false));
-    } else if (status==="approved" && DEMO_MODE) {
-      setScreen("quiz");
-    }
-  }, []);
+  const [clientData,   setClientData] = useState(null);
 
   useEffect(()=>{
     const link = document.createElement("link");
     link.rel  = "stylesheet";
-    link.href = "https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap";
+    link.href = "https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap";
     document.head.appendChild(link);
   },[]);
 
-  if (verifying) return (
-    <div style={{ background:G.bg, minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'DM Sans',sans-serif", color:G.muted, fontSize:14 }}>
-      Verificando pago...
-    </div>
-  );
-
   return (
     <div style={{ background:G.bg, minHeight:"100vh" }}>
-      <div style={{ position:"fixed", top:0, left:0, right:0, height:300,
-        background:"radial-gradient(ellipse 80% 40% at 50% 0%,rgba(37,99,235,.12),transparent)",
+      <div style={{ position:"fixed", top:0, left:0, right:0, height:250,
+        background:"radial-gradient(ellipse 80% 50% at 50% 0%,rgba(37,99,235,.14),transparent)",
         pointerEvents:"none", zIndex:0 }}/>
-      <div style={{ maxWidth:640, margin:"0 auto", padding:"0 1rem 5rem", fontFamily:"'DM Sans',sans-serif", color:G.text, minHeight:"100vh", position:"relative", zIndex:1 }}>
-        {screen==="landing"  && <Landing  onStart={()=>setScreen("checkout")}/>}
-        {screen==="checkout" && <Checkout onPaid={(data)=>{ setClientData(data); setScreen("quiz"); }} onBack={()=>setScreen("landing")}/>}
+      <div style={{
+        maxWidth:480, margin:"0 auto",
+        padding:"0 1.1rem 5rem",
+        fontFamily:"'DM Sans',sans-serif",
+        color:G.text, minHeight:"100vh",
+        position:"relative", zIndex:1
+      }}>
+        {screen==="landing"  && <Landing  onStart={()=>setScreen("capture")}/>}
+        {screen==="capture"  && <Capture  onNext={(data)=>{ setClientData(data); setScreen("quiz"); }}/>}
         {screen==="quiz"     && <Quiz     onFinish={ans=>{ setFinalAns(ans); setScreen("results"); }}/>}
         {screen==="results"  && <Results  answers={finalAnswers} clientData={clientData} onRestart={()=>{ setFinalAns(null); setClientData(null); setScreen("landing"); }}/>}
       </div>
